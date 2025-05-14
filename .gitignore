@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+#for toolchain build temp dirs
+sources/
+sources.tar.*
+sources.tar
+buildroot/
