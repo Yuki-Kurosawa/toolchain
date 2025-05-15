@@ -221,6 +221,7 @@ TEST_GCC_STAGE1()
 	$TARGET-gcc -v
 	$TARGET-gcc -o $SRCROOT/elf $SRCROOT/elf.c
 	$SRCROOT/elf
+	rm -v $SRCROOT/elf
 }
 
 
