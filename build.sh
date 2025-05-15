@@ -107,6 +107,7 @@ DOWNLOAD_SOURCES()
 DO_FIRST_STAGE()
 {
 	cd $BUILDROOT
+	# build binutils pass 1	
 	tar xvf $SRCROOT/binutils-2.44.tar.xz
 	cd binutils-2.44
 	mkdir build
@@ -119,20 +120,115 @@ DO_FIRST_STAGE()
              --disable-werror    \
              --enable-new-dtags  \
              --enable-default-hash-style=gnu
-	
-	date > /tmp/build.log
+		
 	make
 	make install
-	date >> /tmp/build.log
+
 	cd $BUILDROOT
+	rm -rvf *
+
+	#build gcc pass 1
+	tar xvf $SRCROOT/gcc-15.1.0.tar.xz
+	cd gcc-15.1.0
+	tar xvf $SRCROOT/gmp-6.3.0.tar.xz
+	tar xvf $SRCROOT/mpfr-4.2.2.tar.xz
+	tar xvf $SRCROOT/mpc-1.3.1.tar.gz
+	tar xvf $SRCROOT/isl-0.24.tar.bz2
+
+	mv gmp-6.3.0 gmp
+	mv mpfr-4.2.2 mpfr
+	mv mpc-1.3.1 mpc
+	mv isl-0.24 isl
+
+	case $(uname -m) in
+	x86_64)
+		sed -e '/m64=/s/lib64/lib/' \
+			-i.orig gcc/config/i386/t-linux64
+	;;
+	aarch64)
+		sed -e '/mabi.lp64=/s/lib64/lib/' \
+			-i.orig gcc/config/aarch64/t-aarch64-linux
+	;;
+	esac
+
+	mkdir -v build
+	cd build
+
+	if [ "x$LIBC" = "xgnu" ]; then
+		../configure                  \
+			--target=$LFS_TGT         \
+			--prefix=$LFS/$FIRST_STAGE_PREFIX       \
+			--with-glibc-version=2.41 \
+			--with-sysroot=$LFS       \
+			--with-newlib             \
+			--without-headers         \
+			--enable-default-pie      \
+			--enable-default-ssp      \
+			--disable-nls             \
+			--disable-shared          \
+			--disable-multilib        \
+			--disable-threads         \
+			--disable-libatomic       \
+			--disable-libgomp         \
+			--disable-libquadmath     \
+			--disable-libssp          \
+			--disable-libvtv          \
+			--disable-libstdcxx       \
+			--enable-languages=c,c++
+	elif [ "x$LIBC" = "xmusl" ]; then
+		../configure                  \
+			--target=$LFS_TGT         \
+			--prefix=$LFS/$FIRST_STAGE_PREFIX       \
+			--with-sysroot=$LFS       \
+			--with-newlib             \
+			--without-headers         \
+			--enable-default-pie      \
+			--enable-default-ssp      \
+			--disable-nls             \
+			--disable-shared          \
+			--disable-multilib        \
+			--disable-threads         \
+			--disable-libatomic       \
+			--disable-libgomp         \
+			--disable-libquadmath     \
+			--disable-libssp          \
+			--disable-libvtv          \
+			--disable-libstdcxx       \
+			--enable-languages=c,c++
+	fi
+
+	make
+	make install
+
+	cd $BUILDROOT
+	rm -rvf *
+
+	# install kernel headers
+	tar xvf $SRCROOT/linux-6.14.6.tar.xz
+	cd linux-6.14.6
+	make mrproper
+	make headers
+	find usr/include -type f ! -name '*.h' -delete
+	cp -rv usr/include $LFS/$FINAL_PREFIX/usr
+
+	cd $BUILDROOT
+	rm -rvf *
+
+}
+
+TEST_GCC_STAGE1()
+{
+	$TARGET-gcc -v
+	$TARGET-gcc -o $SRCROOT/elf $SRCROOT/elf.c
+	$SRCROOT/elf
 }
 
 
 MAIN(){
 	DO_SOME_CHECKS
 	DOWNLOAD_SOURCES
-	echo $?
 	DO_FIRST_STAGE
+	TEST_GCC_STAGE1
 }
 
 MAIN
