@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # EXPORT SOME GLOBAL VARIABLES
-export FIRST_STAGE_PREFIX="opt/toolchain-stage1"
-export FINAL_PREFIX="opt/toolchain"
 export PACKAGE_FORMAT="TAR"
 export SKIP_SOURCE=1
-export LIBC="gnu"
+export LIBC="musl"
+export FIRST_STAGE_PREFIX="opt/toolchain-stage1"
+export FINAL_PREFIX="opt/toolchain/$LIBC"
 export TARGET="x86_64-ksyuki-linux-$LIBC"
 export THISROOT=$(pwd)
 export SRCROOT=$(pwd)/sources
@@ -220,7 +220,36 @@ DO_FIRST_STAGE()
 TEST_GCC_STAGE1()
 {
 	$TARGET-gcc -v
-	$TARGET-gcc -o $THISROOT/elf $THISROOT/elf.c
+	$TARGET-gcc -o $THISROOT/elf $THISROOT/elf.c	
+	$THISROOT/elf
+	rm -v $THISROOT/elf
+}
+
+DO_MUSL()
+{
+	cd $BUILDROOT
+	tar xvf $SRCROOT/musl-1.2.5.tar.gz
+	cd musl-1.2.5
+
+	mkdir build
+	cd build
+	../configure --prefix=/usr \
+	--target=$LFS_TGT \
+	--host=$LFS_TGT \
+	--disable-warnings
+
+	make
+	make DESTDIR="$LFS$FINAL_PREFIX" install
+
+	cd $BUILDROOT
+	rm -rvf *
+}
+
+TEST_MUSL()
+{
+	$TARGET-gcc -v
+	$TARGET-gcc -o $THISROOT/elf $THISROOT/elf.c	
+	musl-ldd $THISROOT/elf
 	$THISROOT/elf
 	rm -v $THISROOT/elf
 }
@@ -231,6 +260,8 @@ MAIN(){
 	DOWNLOAD_SOURCES
 	DO_FIRST_STAGE
 	TEST_GCC_STAGE1
+	DO_MUSL
+	TEST_MUSL
 }
 
 MAIN
