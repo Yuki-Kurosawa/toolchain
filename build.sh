@@ -7,6 +7,7 @@ export PACKAGE_FORMAT="TAR"
 export SKIP_SOURCE=1
 export LIBC="gnu"
 export TARGET="x86_64-ksyuki-linux-$LIBC"
+export THISROOT=$(pwd)
 export SRCROOT=$(pwd)/sources
 export BUILDROOT=$(pwd)/buildroot
 
@@ -112,7 +113,7 @@ DO_FIRST_STAGE()
 	cd binutils-2.44
 	mkdir build
 	cd build
-	../configure --prefix=$LFS/$FIRST_STAGE_PREFIX \
+	../configure --prefix=$LFS$FIRST_STAGE_PREFIX \
              --with-sysroot=$LFS \
              --target=$LFS_TGT   \
              --disable-nls       \
@@ -157,7 +158,7 @@ DO_FIRST_STAGE()
 	if [ "x$LIBC" = "xgnu" ]; then
 		../configure                  \
 			--target=$LFS_TGT         \
-			--prefix=$LFS/$FIRST_STAGE_PREFIX       \
+			--prefix=$LFS$FIRST_STAGE_PREFIX       \
 			--with-glibc-version=2.41 \
 			--with-sysroot=$LFS       \
 			--with-newlib             \
@@ -178,7 +179,7 @@ DO_FIRST_STAGE()
 	elif [ "x$LIBC" = "xmusl" ]; then
 		../configure                  \
 			--target=$LFS_TGT         \
-			--prefix=$LFS/$FIRST_STAGE_PREFIX       \
+			--prefix=$LFS$FIRST_STAGE_PREFIX       \
 			--with-sysroot=$LFS       \
 			--with-newlib             \
 			--without-headers         \
@@ -219,9 +220,9 @@ DO_FIRST_STAGE()
 TEST_GCC_STAGE1()
 {
 	$TARGET-gcc -v
-	$TARGET-gcc -o $SRCROOT/elf $SRCROOT/elf.c
-	$SRCROOT/elf
-	rm -v $SRCROOT/elf
+	$TARGET-gcc -o $THISROOT/elf $THISROOT/elf.c
+	$THISROOT/elf
+	rm -v $THISROOT/elf
 }
 
 
